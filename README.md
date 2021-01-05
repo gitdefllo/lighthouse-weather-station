@@ -1,5 +1,20 @@
 # Lighthouse Weather Station
 
+The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone.  
+
+<img height="320" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_2.jpg"/> 
+
+You can find all the necessary files in these packages:
+
+- `app/lighthouse_weather`: a Flutter mobile app
+- `station`: a Python service for RPi
+- `print`: the 3D print files
+- `media`: photos and screenshots
+
+Read [How I built a lighthouse weather station?](https://fllo.medium.com/how-i-built-a-lighthouse-weather-station-12edd2a6a13b) to see how it works.
+
+# Installation
+
 > **Make sure your RPi uses `Python3` and `pip3`** (see [the Adafruit guide](https://learn.adafruit.com/circuitpython-on-raspberrypi-linux/installing-circuitpython-on-raspberry-pi)).
 
 ### RPi installation
@@ -31,7 +46,7 @@ exit 0
 (Optionnaly,) change the timeout by editing `/etc/bluetooth/main.conf`:
 
 ```bash
-DiscoverableTimeout = 5
+DiscoverableTimeout = 10
 ```
 
 Then, restart the Pi as follows:
@@ -84,3 +99,13 @@ Color selected: (0, 153, 255)
 ---
 
 ```
+
+# Media
+
+When the device is off:
+
+<img height="332" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_1.jpg"/> 
+
+When set a custom color (white for example):
+
+<img height="340" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_4.jpg"/> 
