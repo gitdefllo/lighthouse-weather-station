@@ -11,7 +11,7 @@ class Enabled extends BleEvent {}
 
 class Disabled extends BleEvent {}
 
-class Connecting extends BleEvent {}
+class Scanning extends BleEvent {}
 
 class Connected extends BleEvent {}
 

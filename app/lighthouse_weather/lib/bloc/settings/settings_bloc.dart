@@ -1,22 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:lighthouse_weather/bloc/settings/settings_event.dart';
 import 'package:lighthouse_weather/bloc/settings/settings_state.dart';
-import 'package:lighthouse_weather/data/cmd_types_data.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
-  final StreamSink<Uint8List> _streamSender;
-  final Stream<Uint8List> _streamReceiver;
-  StreamSubscription<Uint8List> _streamDataReceived;
+  final Guid _IP_ADDRESS_CHARACTERISTIC_GUID = Guid('00000001-61c8-471e-94f3-5050570167b2');
+  final Guid _SHUTDOWN_CHARACTERISTIC_GUID = Guid('00000002-61c8-471e-94f3-5050570167b2');
+  final BluetoothService _bleService;
 
-  SettingsBloc(StreamSink<Uint8List> streamSender, Stream<Uint8List> streamReceiver)
-      : assert(streamSender != null, streamReceiver != null),
-        _streamSender = streamSender,
-        _streamReceiver = streamReceiver,
+  SettingsBloc(BluetoothService bleService)
+      : assert(bleService != null), _bleService = bleService,
         super(SettingsInitial());
 
   @override
@@ -35,25 +32,13 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }
 
   Stream<SettingsState> _mapShouldGetIpAddress() async* {
-    _streamDataReceived = _streamReceiver.listen((data) {
-      var dataReceived = utf8.decode(data);
-      print('S: Data received: $dataReceived');
-      if (!dataReceived.startsWith('IP=')) {
-        return;
-      }
-      var ipAddress = dataReceived.substring(3);
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _IP_ADDRESS_CHARACTERISTIC_GUID);
+    final value = await characteristic.read();
+    final data = utf8.decode(value);
+    print('S: Data received: $data');
 
-      add(IpAddressUpdated(ipAddress));
-    });
-
-    try {
-      var cmd = 'CMD=${CmdTypes.IP.value}';
-      print('Command added: $cmd');
-      _streamSender.add(utf8.encode(cmd));
-      yield SettingsInitial();
-    } catch (e) {
-      print('Get ip address failed: $e');
-    }
+    add(IpAddressUpdated(data));
   }
 
   Stream<SettingsState> _mapIpAddressUpdated(IpAddressUpdated event) async* {
@@ -61,19 +46,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }
 
   Stream<SettingsState> _mapShouldShutdown() async* {
-    try {
-      var cmd = 'CMD=${CmdTypes.SHUTDOWN.value}';
-      print('Command added: $cmd');
-      _streamSender.add(utf8.encode(cmd));
-      yield SettingsClosed();
-    } catch (e) {
-      print('Shutdown failed: $e');
-    }
-  }
-
-  @override
-  Future<void> close() {
-    _streamDataReceived?.cancel();
-    return super.close();
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _SHUTDOWN_CHARACTERISTIC_GUID);
+    await characteristic.write([]);
   }
 }

@@ -1,27 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:lighthouse_weather/bloc/weather/weather_event.dart';
 import 'package:lighthouse_weather/bloc/weather/weather_state.dart';
 
 import 'package:lighthouse_weather/data/cities_data.dart';
-import 'package:lighthouse_weather/data/cmd_types_data.dart';
 
 import 'package:lighthouse_weather/models/weather.dart';
 import 'package:lighthouse_weather/models/city.dart';
 
 class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
-  final StreamSink<Uint8List> _streamSender;
-  final Stream<Uint8List> _streamReceiver;
-  StreamSubscription<Uint8List> _streamDataReceiver;
+  final Guid _WEATHER_CHARACTERISTIC_GUID = Guid('00000001-8cb1-44ce-9a66-001dca0941a6');
+  final Guid _RESUME_WEATHER_CHARACTERISTIC_GUID = Guid('00000002-8cb1-44ce-9a66-001dca0941a6');
+  final BluetoothService _bleService;
+  StreamSubscription<List<int>> _streamBleWeatherCharacteristic;
 
-  WeatherBloc(StreamSink<Uint8List> streamSender, Stream<Uint8List> streamReceiver)
-      : assert(streamSender != null), assert(streamReceiver != null),
-        _streamSender = streamSender,
-        _streamReceiver = streamReceiver,
+  WeatherBloc(BluetoothService bleService)
+      : assert(bleService != null), _bleService = bleService,
         super(WeatherInitial());
 
   @override
@@ -42,14 +40,21 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
   Stream<WeatherState> _mapListenToUpdates() async* {
     yield WeatherInitial();
 
-    _streamDataReceiver = _streamReceiver.listen((data) {
-      var dataDecoded = utf8.decode(data);
-      print('W: Data decoded : $dataDecoded');
-      if (dataDecoded.startsWith('IP=')) {
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _WEATHER_CHARACTERISTIC_GUID);
+    await characteristic.setNotifyValue(true);
+
+    _streamBleWeatherCharacteristic = characteristic.value.listen((value) {
+      print('W: value received : $value');
+      if (value == null || value.isEmpty) {
+        print('W: value is empty');
         return;
       }
 
-      var dataReceived = dataDecoded.split(',');
+      var data = utf8.decode(value);
+      print('W: Data decoded : $data');
+
+      var dataReceived = data.split(',');
       print('W: Data received: $dataReceived');
 
       var dataTemp = dataReceived[0];
@@ -74,14 +79,10 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
     });
   }
 
-  void restartUpdates() {
-    try {
-      var cmd = 'CMD=${CmdTypes.UPDATE.value}';
-      print('Command added: $cmd');
-      _streamSender.add(utf8.encode(cmd));
-    } catch (e) {
-      print('Restart updating failed: $e');
-    }
+  void restartUpdates() async {
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _RESUME_WEATHER_CHARACTERISTIC_GUID);
+    await characteristic.write([]);
   }
 
   Stream<WeatherState> _mapWeatherReceived(WeatherReceived event) async* {
@@ -90,7 +91,7 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
 
   @override
   Future<void> close() {
-    _streamDataReceiver?.cancel();
+    _streamBleWeatherCharacteristic?.cancel();
     return super.close();
   }
 }

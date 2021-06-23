@@ -1,8 +1,8 @@
 # Lighthouse Weather Station
 
-The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone.  
+The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone using BLE protocol.  
 
-<img height="320" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_2.jpg"/> 
+<img height="320" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_2.jpg"/>
 
 You can find all the necessary files in these packages:
 
@@ -12,6 +12,12 @@ You can find all the necessary files in these packages:
 - `media`: photos and screenshots
 
 Read [How I built a lighthouse weather station?](https://fllo.medium.com/how-i-built-a-lighthouse-weather-station-12edd2a6a13b) to see how it works.
+
+---
+
+:warning: This project has been migrated to support **Bluetooth Low Energy**. See [*feature_classic_bluetooth*](https://github.com/gitdefllo/lighthouse-weather-station/tree/feature_classic_bluetooth) to use Classic Bluetooth protocol on RFCOMM.
+
+---
 
 # Installation
 
@@ -35,7 +41,7 @@ $ sudo bluetoothctl
 [bluetooth]# quit
 ```
 
-Make it discoverable at boot by adding this line at end of `/etc/rc.local` file: 
+Make it discoverable at boot by adding this line at end of `/etc/rc.local` file:
 
 ```bash
 ...
@@ -104,8 +110,8 @@ Color selected: (0, 153, 255)
 
 When the device is off:
 
-<img height="332" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_1.jpg"/> 
+<img height="332" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_1.jpg"/>
 
 When set a custom color (white for example):
 
-<img height="340" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_4.jpg"/> 
+<img height="340" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_4.jpg"/>

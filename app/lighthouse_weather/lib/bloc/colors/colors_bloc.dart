@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:lighthouse_weather/bloc/colors/colors_event.dart';
 import 'package:lighthouse_weather/bloc/colors/colors_state.dart';
-import 'package:lighthouse_weather/data/cmd_types_data.dart';
 
 class ColorsBloc extends Bloc<ColorsEvent, ColorsState> {
-  final StreamSink<Uint8List> _streamSender;
+  final Guid _RGB_COLOR_CHARACTERISTIC_GUID = Guid('00000001-8194-4451-aaf5-7874c7c16a27');
+  final BluetoothService _bleService;
 
-  ColorsBloc(StreamSink<Uint8List> streamSender)
-      : assert(streamSender != null),
-        _streamSender = streamSender,
+  ColorsBloc(BluetoothService bleService)
+      : assert(bleService != null), _bleService = bleService,
         super(ColorsInitial());
 
   @override
@@ -24,14 +23,10 @@ class ColorsBloc extends Bloc<ColorsEvent, ColorsState> {
   }
 
   Stream<ColorsState> _mapChangeColor(ChangeColors event) async* {
-    try {
-      var cmd = 'CMD=${CmdTypes.COLOR.value},VAL=${event.colors.join(',')}';
-      print('Command added: $cmd');
-      _streamSender.add(utf8.encode(cmd));
-      yield ColorsUpdated();
-    } catch (e) {
-      print('Color updating failed: $e');
-      yield ColorsUpdatingFailed();
-    }
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _RGB_COLOR_CHARACTERISTIC_GUID);
+    final data = utf8.encode(event.colors.join(','));
+    await characteristic.write(data);
+    yield ColorsUpdated();
   }
 }

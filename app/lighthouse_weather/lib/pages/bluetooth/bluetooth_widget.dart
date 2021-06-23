@@ -29,7 +29,7 @@ class BluetoothWidgetState extends State<BluetoothWidget> {
           child: Stack(children: [
         BluetoothInfo(icon: MdiIcons.bluetooth, label: 'Ready to connect'),
         _showAction(MdiIcons.bluetoothAudio, 'Connect to the station',
-            () => bleBloc.add(Connecting()))
+            () => bleBloc.add(Scanning()))
       ]));
     }
 
@@ -38,7 +38,7 @@ class BluetoothWidgetState extends State<BluetoothWidget> {
           icon: MdiIcons.bluetoothOff, label: 'Turn bluetooth on');
     }
 
-    if (_state is BleConnecting) {
+    if (_state is BleScanning) {
       return Column(children: [
         BluetoothInfo(icon: MdiIcons.bluetoothAudio, label: 'Connecting..'),
         Container(
@@ -55,7 +55,7 @@ class BluetoothWidgetState extends State<BluetoothWidget> {
           child: Stack(children: [
         BluetoothInfo(icon: MdiIcons.alertCircle, label: 'An error occured'),
         _showAction(MdiIcons.refresh, 'Retry to connect',
-            () => bleBloc.add(Connecting())),
+            () => bleBloc.add(Scanning())),
       ]));
     }
 

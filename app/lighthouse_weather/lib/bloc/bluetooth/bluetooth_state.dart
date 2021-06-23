@@ -11,7 +11,7 @@ class BleEnabled extends BleState {}
 
 class BleDisabled extends BleState {}
 
-class BleConnecting extends BleState {}
+class BleScanning extends BleState {}
 
 class BleConnected extends BleState {}
 
