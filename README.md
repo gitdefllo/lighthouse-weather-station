@@ -1,6 +1,6 @@
 # Lighthouse Weather Station
 
-The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone using BLE protocol.  
+The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone using Bluetooth Low Energy.  
 
 <img height="320" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_2.jpg"/>
 
@@ -15,7 +15,8 @@ Read [How I built a lighthouse weather station?](https://fllo.medium.com/how-i-b
 
 ---
 
-:warning: This project has been migrated to support **Bluetooth Low Energy**. See [*feature_classic_bluetooth*](https://github.com/gitdefllo/lighthouse-weather-station/tree/feature_classic_bluetooth) to use Classic Bluetooth protocol on RFCOMM.
+> :warning: **This project has been migrated to support Bluetooth Low Energy**.  
+> See the branch [*feature_classic_bluetooth*](https://github.com/gitdefllo/lighthouse-weather-station/tree/feature_classic_bluetooth) to use Classic Bluetooth protocol on RFCOMM.
 
 ---
 
