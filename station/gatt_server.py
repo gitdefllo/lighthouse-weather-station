@@ -12,7 +12,7 @@ class BleApplication(Application):
 class WeatherStationAdvertisement(Advertisement):
     def __init__(self, index):
         Advertisement.__init__(self, index, "peripheral")
-        self.add_local_name("WeatherStationBLE")
+        self.add_local_name("LighthouseStationBLE")
         self.include_tx_power = True
 
 class WeatherService(Service):
@@ -22,6 +22,7 @@ class WeatherService(Service):
         self.city_id = 6454880 # Orsay (default)
         Service.__init__(self, index, self.WEATHER_SVC_UUID, True)
         self.add_characteristic(WeatherCharacteristic(self))
+        self.add_characteristic(ResumeWeatherCharacteristic(self))
         self.add_characteristic(CityIdCharacteristic(self))
 
     def get_city_id(self):
@@ -112,8 +113,40 @@ class WeatherDescriptor(Descriptor):
 
         return value
 
+class ResumeWeatherCharacteristic(Characteristic):
+    RESUME_WEATHER_CHARACTERISTIC_UUID = "00000002-8cb1-44ce-9a66-001dca0941a6"
+
+    def __init__(self, service):
+        Characteristic.__init__(
+                self, self.RESUME_WEATHER_CHARACTERISTIC_UUID,
+                ["write"], service)
+        self.add_descriptor(ResumeWeatherDescriptor(self))
+
+    def WriteValue(self, value, options):
+        print('Resume command received', flush=True)
+        self.service.get_characteristics()[0].StartNotify()
+
+class ResumeWeatherDescriptor(Descriptor):
+    RESUME_WEATHER_DESCRIPTOR_UUID = "0002"
+    RESUME_WEATHER_DESCRIPTOR_VALUE = "Resume weather"
+
+    def __init__(self, characteristic):
+        Descriptor.__init__(
+                self, self.RESUME_WEATHER_DESCRIPTOR_UUID,
+                ["read"],
+                characteristic)
+
+    def ReadValue(self, options):
+        value = []
+        desc = self.RESUME_WEATHER_DESCRIPTOR_VALUE
+
+        for c in desc:
+            value.append(dbus.Byte(c.encode()))
+
+        return value
+
 class CityIdCharacteristic(Characteristic):
-    CITY_ID_CHARACTERISTIC_UUID = "00000002-8cb1-44ce-9a66-001dca0941a6"
+    CITY_ID_CHARACTERISTIC_UUID = "00000003-8cb1-44ce-9a66-001dca0941a6"
 
     def __init__(self, service):
         Characteristic.__init__(
@@ -138,7 +171,7 @@ class CityIdCharacteristic(Characteristic):
         return value
 
 class CityIdDescriptor(Descriptor):
-    CITY_ID_DESCRIPTOR_UUID = "0002"
+    CITY_ID_DESCRIPTOR_UUID = "0003"
     CITY_ID_DESCRIPTOR_VALUE = "City id"
 
     def __init__(self, characteristic):
@@ -179,14 +212,14 @@ class RgbColorCharacteristic(Characteristic):
         self.add_descriptor(RgbColorDescriptor(self))
 
     def WriteValue(self, value, options):
+        app.services[0].get_characteristics()[0].StopNotify()
+        print('Weather service notifying stopped', flush=True)
+
         print('Value received: ', (str(value)), flush=True)
         val = "".join(map(chr, value))
         print('New rgb color value: ', val, flush=True)
 
         self.service.set_rgb_color(val)
-
-        app.services[0].get_characteristics()[0].StopNotify()
-        print('Weather service notifying stopped', flush=True)
 
 class RgbColorDescriptor(Descriptor):
     RGB_COLOR_DESCRIPTOR_UUID = "0001"
@@ -268,13 +301,10 @@ class ShutdownSystemCharacteristic(Characteristic):
         self.add_descriptor(ShutdownSystemDescriptor(self))
 
     def WriteValue(self, value, options):
-        val = str(value[0])
-        print('Value received: ', val, flush=True)
-
-        if (val == 'Y'):
-            app.services[0].get_characteristics()[0].StopNotify()
-            print('Weather service notifying stopped', flush=True)
-            print('Shutdown system', flush=True)
+        print('Shutdown command received', flush=True)
+        app.services[0].get_characteristics()[0].StopNotify()
+        print('Weather service notifying stopped', flush=True)
+        ##### app.shutdown()
 
 class ShutdownSystemDescriptor(Descriptor):
     SHUTDOWN_SYSTEM_DESCRIPTOR_UUID = "0001"

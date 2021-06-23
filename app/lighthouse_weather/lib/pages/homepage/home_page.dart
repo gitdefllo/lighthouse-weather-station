@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart' show Guid;
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'package:lighthouse_weather/bloc/bluetooth/bluetooth.dart';
@@ -20,6 +21,8 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
+  final Guid _WEATHER_SERVICE_GUID = Guid('00000000-8cb1-44ce-9a66-001dca0941a6');
+
   @override
   Widget build(BuildContext context) {
     var bleBloc = BlocProvider.of<BleBloc>(context);
@@ -27,7 +30,8 @@ class HomePageState extends State<HomePage> {
 
     return BlocProvider(
         create: (_) =>
-            WeatherBloc(bleBloc.connection.output, bleBloc.streamReceiver)..add(ListenToUpdates()),
+            WeatherBloc(bleBloc.getServiceByGuid(_WEATHER_SERVICE_GUID))
+              ..add(ListenToUpdates()),
         child:
             BlocBuilder<WeatherBloc, WeatherState>(builder: (context, state) {
           return Scaffold(

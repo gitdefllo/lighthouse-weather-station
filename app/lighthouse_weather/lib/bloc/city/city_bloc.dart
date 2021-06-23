@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:lighthouse_weather/bloc/city/city_event.dart';
 import 'package:lighthouse_weather/bloc/city/city_state.dart';
-import 'package:lighthouse_weather/data/cmd_types_data.dart';
 
 class CityBloc extends Bloc<CityEvent, CityState> {
-  final StreamSink<Uint8List> _streamSender;
+  final Guid _CITY_ID_CHARACTERISTIC_GUID = Guid('00000003-8cb1-44ce-9a66-001dca0941a6');
+  final BluetoothService _bleService;
 
-  CityBloc(StreamSink<Uint8List> streamSender)
-      : assert(streamSender != null),
-        _streamSender = streamSender,
+  CityBloc(BluetoothService bleService)
+      : assert(bleService != null), _bleService = bleService,
         super(CityInitial());
 
   @override
@@ -24,14 +23,10 @@ class CityBloc extends Bloc<CityEvent, CityState> {
   }
 
   Stream<CityState> _mapChangeCity(ChangeCity event) async* {
-    try {
-      var cmd = 'CMD=${CmdTypes.CITY.value},VAL=${event.cityId}';
-      print('Command added: $cmd');
-      _streamSender.add(utf8.encode(cmd));
-      yield CityUpdated();
-    } catch (e) {
-      print('City updating failed: $e');
-      yield CityUpdatingFailed();
-    }
+    final characteristic = _bleService.characteristics.firstWhere(
+            (c) => c.uuid == _CITY_ID_CHARACTERISTIC_GUID);
+    final data = utf8.encode(event.cityId.toString());
+    await characteristic.write(data);
+    yield CityUpdated();
   }
 }

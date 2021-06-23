@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 import 'bluetooth_event.dart';
 import 'bluetooth_state.dart';
@@ -10,19 +9,15 @@ import 'bluetooth_state.dart';
 class BleBloc extends Bloc<BleEvent, BleState> {
   BleBloc() : super(BleInitial());
 
-  final String _nameLighthouseStation = 'LighthouseWeatherStation';
-  final String _addressLighthouseStation = 'XX:XX:XX:XX:XX:XX';
-  final FlutterBluetoothSerial _bluetoothSerial =
-      FlutterBluetoothSerial.instance;
-  BluetoothConnection connection;
-  Stream<Uint8List> _streamReceiver;
-  StreamSubscription<Uint8List> _streamDataReceiver;
-  StreamSubscription<BluetoothDiscoveryResult> _streamDiscovery;
+  final String _nameLighthouseStation = 'LighthouseStationBLE';
+  final DeviceIdentifier _addressLighthouseStation = DeviceIdentifier('B8:27:EB:C7:6F:51');
 
-  Stream<Uint8List> get streamReceiver {
-    _streamReceiver ??= this.connection.input.asBroadcastStream();
-    return _streamReceiver;
-  }
+  final FlutterBlue _flutterBlue = FlutterBlue.instance;
+  BluetoothDevice _bleDevice;
+  StreamSubscription<BluetoothState> _streamBleState;
+  StreamSubscription<BluetoothDeviceState> _streamBleDevice;
+  StreamSubscription<List<ScanResult>> _streamBleScan;
+  List<BluetoothService> bleServices;
 
   @override
   Stream<BleState> mapEventToState(BleEvent event) async* {
@@ -38,8 +33,8 @@ class BleBloc extends Bloc<BleEvent, BleState> {
       yield BleDisabled();
     }
 
-    if (event is Connecting) {
-      yield* _mapConnecting();
+    if (event is Scanning) {
+      yield* _mapScanning();
     }
 
     if (event is Connected) {
@@ -59,60 +54,73 @@ class BleBloc extends Bloc<BleEvent, BleState> {
     yield BleInitial();
     await Future.delayed(const Duration(seconds: 4));
 
-    var _state = await _bluetoothSerial.state;
-    if (connection != null && connection.isConnected) {
-      yield BleConnected();
-    } else if (_state == BluetoothState.STATE_OFF) {
-      yield BleDisabled();
-    } else {
+    var bleEnabled = await _flutterBlue.isOn;
+    if (bleEnabled) {
       yield BleEnabled();
+    } else {
+      yield BleDisabled();
     }
-  }
 
-  Stream<BleState> _mapConnecting() async* {
-    yield BleConnecting();
-    _streamDiscovery = _bluetoothSerial.startDiscovery().listen((result) {
-      print('Found device: ${result.device.address}');
-      if (result.device.name == _nameLighthouseStation &&
-          result.device.address == _addressLighthouseStation) {
-        print('Lighthouse Weather Station found.');
-        connect(result.device);
+    _streamBleState = _flutterBlue.state.listen((state) {
+      if (state == BluetoothState.on) {
+        add(Enabled());
+      } else {
+        add(Disabled());
       }
-    })
-      ..onError((error) {
-        print('Stream discovery error.');
-        add(Failure());
-      });
+    });
   }
 
-  void connect(BluetoothDevice result) async {
+  Stream<BleState> _mapScanning() async* {
+    yield BleScanning();
+    _flutterBlue.startScan();
+
+    _streamBleScan = _flutterBlue.scanResults.listen((results) {
+      for (ScanResult result in results) {
+        print('${result.device.name} found! id: ${result.device.id}');
+        if (result.device.name == _nameLighthouseStation && result.device.id == _addressLighthouseStation) {
+          connect(result.device);
+        }
+      }
+    });
+  }
+
+  void connect(BluetoothDevice device) async {
     print('Try connecting');
-    BluetoothConnection.toAddress(result.address).then((conn) {
-      print('Connected to the device');
-      connection = conn;
-      add(Connected());
+    _streamBleScan.cancel();
+    _bleDevice = device;
+
+    await _bleDevice.connect().then((value) => {
+      discoverServices()
     }).catchError((error) {
       print('Cannot connect: $error');
       add(Failure());
     });
   }
 
+  void discoverServices() async {
+    bleServices = await _bleDevice.discoverServices();
+    add(Connected());
+  }
+
   void listenConnectionState() {
-    _streamDataReceiver = _streamReceiver.listen((data) {})
-      ..onDone(() {
-        if (!connection.isConnected) {
-          add(Failure());
-        }
-      })
-      ..onError((error) {
+    _streamBleDevice = _bleDevice.state.listen((state) {
+      if (state == BluetoothDeviceState.connecting) {
+        add(Scanning());
+      } else if (state == BluetoothDeviceState.disconnecting || state == BluetoothDeviceState.disconnected) {
         add(Failure());
-      });
+      }
+    });
+  }
+
+  BluetoothService getServiceByGuid(Guid guid) {
+    return bleServices.firstWhere((service) => service.uuid == guid, orElse: null);
   }
 
   @override
   Future<void> close() {
-    _streamDiscovery?.cancel();
-    _streamDataReceiver?.cancel();
+    _streamBleScan?.cancel();
+    _streamBleDevice?.cancel();
+    _streamBleState?.cancel();
     return super.close();
   }
 }

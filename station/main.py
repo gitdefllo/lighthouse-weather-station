@@ -10,9 +10,12 @@ from gatt_server import BleApplication, WeatherStationAdvertisement, WeatherServ
 from repeated_timer import RepeatedTimer
 
 ### params
-delay_weather = 10.0 # seconds
-delay_system = 1.0
-city_id = 6454880 # Orsay (default)
+WEATHER_SERVICE_INDEX = 0
+RGB_COLOR_SERVICE_INDEX = 1
+SYSTEM_SERVICE_INDEX = 2
+
+DELAY_WEATHER_REQUEST = 5.0 # seconds
+DELAY_DETECT_MANUAL_SHUTDOWN = 1.0
 
 timer_update = None
 timer_system = None
@@ -20,7 +23,7 @@ timer_system = None
 base = 'https://api.openweathermap.org/data/2.5/weather'
 city = 'id=%s'
 units = 'units=metric'
-appid = 'appid=xxx'
+appid = 'appid=c6206d175419aecde9ee5a6c233a3830'
 url = '%s?%s&%s&%s' % (base, city, units, appid)
 
 shutdown_pin = board.D4
@@ -44,18 +47,17 @@ def getCurrentWeather():
         return
 
     try:
+        city_id = ble_app.services[WEATHER_SERVICE_INDEX].get_city_id()
+
         data = get(url % (city_id), timeout = 5).json()
         temperature = int(data['main']['temp'])
         weather_id = data['weather'][0]['id']
         print('Request response: %s°C (weather: %s)' % (temperature, weather_id), flush=True)
+
         return [temperature, weather_id]
     except Exception as e:
         print('Request connection error: %s' % e, flush=True)
         pass
-
-def updateCurrentCity(data):
-    print('Update city id to %d' % data, flush=True)
-    ble_app.services[0].set_city_id(data)
 
 ### neopixels
 def selectColorByDegrees(degrees):
@@ -110,24 +112,24 @@ def updateWeather():
     print('Update weather', flush=True)
     data = getCurrentWeather()
     if not data:
-        print('Abort: weather data is None', flush=True)
+        print('Error: weather data is None', flush=True)
         return
 
     degrees = data[0]
     weather_id = data[1]
 
+    ble_app.services[WEATHER_SERVICE_INDEX].set_degrees(degrees)
+    ble_app.services[WEATHER_SERVICE_INDEX].set_weather_id(weather_id)
     updateNeopixelColor(degrees)
-    ble_app.services[0].set_degrees(degrees)
-    ble_app.services[0].set_weather_id(weather_id)
-    print('---', flush=True)
 
-def getIpAddress():
+def fetchIpAddress():
     command = 'hostname -I'
     proc = subprocess.Popen(command, stdout = subprocess.PIPE, shell = True)
     proc = proc.communicate()[0]
     ip_address = str(proc).split(" ")[0].split('\'')[1]
-    print ("IP Address registered: %s" % ip_address, flush=True)
-    return ip_address
+
+    print ("GATT application ip address %s" % ip_address, flush=True)
+    ble_app.services[SYSTEM_SERVICE_INDEX].set_ip_address(ip_address)
 
 def shouldShutdown():
     if not shutdown_button.value:
@@ -136,20 +138,20 @@ def shouldShutdown():
 
 # execution
 ble_app = BleApplication()
-ble_app.add_service(WeatherService(0))
-ble_app.add_service(RgbColorService(1))
-ble_app.add_service(SystemService(2))
+ble_app.add_service(WeatherService(WEATHER_SERVICE_INDEX))
+ble_app.add_service(RgbColorService(RGB_COLOR_SERVICE_INDEX))
+ble_app.add_service(SystemService(SYSTEM_SERVICE_INDEX))
 ble_app.register()
 
 ble_adv = WeatherStationAdvertisement(0)
 ble_adv.register()
 
-timer_update = RepeatedTimer(delay_weather, updateWeather)
-timer_system = RepeatedTimer(delay_system, shouldShutdown)
+timer_update = RepeatedTimer(DELAY_WEATHER_REQUEST, updateWeather)
+timer_system = RepeatedTimer(DELAY_DETECT_MANUAL_SHUTDOWN, shouldShutdown)
 
 try:
     print('GATT application running')
-    ble_app.services[2].set_ip_address(getIpAddress())
+    fetchIpAddress()
     ble_app.run()
 except KeyboardInterrupt:
     ble_app.quit()

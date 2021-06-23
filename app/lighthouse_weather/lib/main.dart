@@ -19,14 +19,6 @@ class LighthouseWeatherApp extends StatelessWidget {
     return MaterialApp(
       title: 'Lighthouse Weather App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-//      theme: ThemeData(
-//          primarySwatch: Colors.red,
-//          primaryColor: Colors.red,
-//          primaryColorDark: Colors.black87,
-//          accentColor: Colors.redAccent),
       home: BlocBuilder<BleBloc, BleState>(builder: (context, state) {
         if (state is BleConnected) {
           return HomePage();

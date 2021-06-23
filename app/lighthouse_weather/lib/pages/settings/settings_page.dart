@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart' show Guid;
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'package:lighthouse_weather/bloc/bluetooth/bluetooth.dart';
@@ -17,12 +18,14 @@ class SettingsPage extends StatefulWidget {
 }
 
 class SettingsPageState extends State<SettingsPage> {
+  final Guid _SYSTEM_SERVICE_GUID = Guid('00000000-61c8-471e-94f3-5050570167b2');
+
   @override
   Widget build(BuildContext context) {
     var bleBloc = BlocProvider.of<BleBloc>(context);
 
     return BlocProvider(
-        create: (_) => SettingsBloc(bleBloc.connection.output, bleBloc.streamReceiver)
+        create: (_) => SettingsBloc(bleBloc.getServiceByGuid(_SYSTEM_SERVICE_GUID))
           ..add(ShouldGetIpAddress()),
         child:
             BlocBuilder<SettingsBloc, SettingsState>(builder: (context, state) {

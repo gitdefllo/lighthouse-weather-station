@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_blue/flutter_blue.dart' show Guid;
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -17,6 +18,7 @@ class ColorsPage extends StatefulWidget {
 }
 
 class ColorsPageState extends State<ColorsPage> {
+  final Guid _RGB_COLOR_SERVICE_GUID = Guid('00000000-8194-4451-aaf5-7874c7c16a27');
   Color currentColor = Color(0xff375670);
 
   @override
@@ -24,7 +26,7 @@ class ColorsPageState extends State<ColorsPage> {
     var bleBloc = BlocProvider.of<BleBloc>(context);
 
     return BlocProvider(
-        create: (_) => ColorsBloc(bleBloc.connection.output),
+        create: (_) => ColorsBloc(bleBloc.getServiceByGuid(_RGB_COLOR_SERVICE_GUID)),
         child: BlocBuilder<ColorsBloc, ColorsState>(builder: (context, state) {
           return Scaffold(
               body: Stack(
