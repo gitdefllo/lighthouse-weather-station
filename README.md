@@ -1,6 +1,6 @@
 # Lighthouse Weather Station
 
-The device informs about the weather with a color set. It also should be able to change the location or the lighthouse's color from a smartphone using Bluetooth Low Energy.  
+The device informs about the weather with a color set. It also provides ways to change the location or the lighthouse's color from a smartphone using Bluetooth Low Energy.  
 
 <img height="320" src="https://github.com/gitdefllo/lighthouse-weather-station/blob/master/media/station/lighthouse_2.jpg"/>
 
@@ -11,49 +11,39 @@ You can find all the necessary files in these packages:
 - `print`: the 3D print files
 - `media`: photos and screenshots
 
-Read [How I built a lighthouse weather station?](https://fllo.medium.com/how-i-built-a-lighthouse-weather-station-12edd2a6a13b) to see how it works.
-
+---
+> :warning: **This project has been migrated to support Bluetooth Low Energy**  
+> See [Using Bluetooth Low Energy between Raspberry Pi and Flutter](https://fllo.medium.com/using-bluetooth-low-energy-between-raspberry-pi-and-flutter-cba012c48b97)  
+> Checkout the branch [*feature_classic_bluetooth*](https://github.com/gitdefllo/lighthouse-weather-station/tree/feature_classic_bluetooth) to use Classic Bluetooth protocol on RFCOMM.
 ---
 
-> :warning: **This project has been migrated to support Bluetooth Low Energy**.  
-> See the branch [*feature_classic_bluetooth*](https://github.com/gitdefllo/lighthouse-weather-station/tree/feature_classic_bluetooth) to use Classic Bluetooth protocol on RFCOMM.
-
----
+Read [How I built a lighthouse weather station?](https://fllo.medium.com/how-i-built-a-lighthouse-weather-station-12edd2a6a13b) to see how this was created.
 
 # Installation
 
-> **Make sure your RPi uses `Python3` and `pip3`** (see [the Adafruit guide](https://learn.adafruit.com/circuitpython-on-raspberrypi-linux/installing-circuitpython-on-raspberry-pi)).
+---
+> :warning: **Make sure your RPi uses `Python3` and `pip3`** (see [the Adafruit guide](https://learn.adafruit.com/circuitpython-on-raspberrypi-linux/installing-circuitpython-on-raspberry-pi)).
+---
 
 ### RPi installation
 
 On RPi ZW, we need to install the following dependencies:
 
 ```bash
+$ sudo apt install python3-dbus
 $ sudo pip3 install Adafruit-Blinka
 $ sudo pip3 install adafruit-circuitpython-neopixel
-$ sudo pip3 install pybluez
 ```
 
-We need to configure the Pi by changing the name of Bluetooth:
+Enable the "experimental" flag to bluetooth deamon in `bluez`:
 
 ```bash
-$ sudo bluetoothctl
-[bluetooth]# system-alias 'LighthouseWeatherStation'
-[bluetooth]# quit
+$ sudo nano /etc/systemd/system/dbus-org.bluez.service
 ```
-
-Make it discoverable at boot by adding this line at end of `/etc/rc.local` file:
-
-```bash
-...
-hciconfig hci0 piscan
-exit 0
-```
-
-(Optionnaly,) change the timeout by editing `/etc/bluetooth/main.conf`:
+Add `-E` flag at the end of line:
 
 ```bash
-DiscoverableTimeout = 10
+ExecStart=/usr/lib/bluetooth/bluetoothd -E
 ```
 
 Then, restart the Pi as follows:
@@ -92,19 +82,23 @@ appid = 'appid=xxx'
 ### Start the Lighthouse Weather Station
 
 ```bash
-$ sudo python main_lighthouse.py
+$ sudo python3 main.py
 ```
 
 This should output:
 
 ```bash
-Waiting for connection on RFCOMM channel 1
+GATT application running
+GATT application registered
+GATT advertisement registered
 ---
 Update weather
-Request response: 2°C (id: 803)
-Color selected: (0, 153, 255)
+Request response: 18°C (weather: 803)
+Color selected: (255, 255, 0)
 ---
-
+Update weather
+Request response: 18°C (weather: 803)
+Color selected: (255, 255, 0)
 ```
 
 # Media
