@@ -95,10 +95,17 @@ GATT advertisement registered
 Update weather
 Request response: 18°C (weather: 803)
 Color selected: (255, 255, 0)
----
+...
+```
+
+Then, when a device is connected, the output should add `Sending` line:
+
+```bash
 Update weather
 Request response: 18°C (weather: 803)
 Color selected: (255, 255, 0)
+Sending:  D=19,W=803,C=6454880
+...
 ```
 
 # Media
